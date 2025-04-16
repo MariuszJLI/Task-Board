@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Department Schedule</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: white;
+      padding: 20px;
+      margin: 0;
+      transform: scale(0.75);
+      transform-origin: top left;
+      width: 133.33%;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    header img {
+      height: 40px;
+    }
+    h1 {
+      text-align: center;
+      margin: 0;
+      font-size: 32px;
+    }
+    #datetime {
+      text-align: center;
+      font-size: 20px;
+      margin-top: 10px;
+    }
+    .departments {
+      display: flex;
+      justify-content: space-around;
+      gap: 20px;
+      flex-wrap: wrap;
+      max-width: 100%;
+    }
+    .department {
+      background: #F37021;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      flex: 1 1 30%;
+      min-width: 280px;
+      max-width: 400px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+    h2 {
+      color: white;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      color: black;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #333;
+      color: white;
+    }
+    td {
+      background-color: #F37021;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+      padding-top: 60px;
+      overflow: auto;
+    }
+    .modal-content {
+      background-color: #ccc;
+      color: black;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 50%;
+    }
+    .modal-content input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      border: 1px solid #888;
+      border-radius: 4px;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .options-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    .options-list li {
+      padding: 8px;
+      cursor: pointer;
+      color: black;
+    }
+    .options-list li:hover {
+      background-color: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="jli-logo.png" alt="JLI Logo" />
+    <h1>TASK BOARD/h1>
+    <div style="width: 40px;"></div>
+  </header>
+
+  <div id="datetime">Loading current date and time...</div>
+
+  <div class="departments">
+    <div class="department">
+      <h2>Distribution</h2>
+      <table id="distribution-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="department">
+      <h2>Goods In</h2>
+      <table id="goodsin-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="department">
+      <h2>Pallets</h2>
+      <table id="pallets-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="nameModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="nameClose">&times;</span>
+      <h2>Select an Employee</h2>
+      <input type="text" id="nameSearch" placeholder="Search names...">
+      <ul class="options-list" id="nameList"></ul>
+    </div>
+  </div>
+
+  <div id="taskModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="taskClose">&times;</span>
+      <h2>Select a Task</h2>
+      <input type="text" id="taskSearch" placeholder="Search tasks...">
+      <ul class="options-list" id="taskList"></ul>
+    </div>
+  </div>
+
+  <script>
+    const proxyBase = "https://departments-board.glitch.me";
+    const apiUrlMainData = `${proxyBase}/?action=getMain`;
+    const apiUrlModalData = `${proxyBase}/?action=getModal`;
+    const apiUrlUpdateCell = proxyBase;
+    const apiUrlCounts = `${proxyBase}/?action=getCounts`;
+
+    let selectedCell = null;
+    let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
+    let availableNames = [];
+
+    async function fetchAndDisplay() {
+      try {
+        const resMainData = await fetch(apiUrlMainData);
+        const dataMain = await resMainData.json();
+
+        const resModalData = await fetch(apiUrlModalData);
+        const dataModal = await resModalData.json();
+
+        const availableTasks = {
+          distribution: dataMain.distribution || [],
+          goodsin: dataMain.goodsin || [],
+          pallets: dataMain.pallets || []
+        };
+
+        availableNames = dataModal.employees || [];
+        availableTaskNames = {
+          distribution: dataModal.distributionTasks || [],
+          goodsin: dataModal.goodsInTasks || [],
+          pallets: dataModal.palletsTasks || []
+        };
+
+        for (const [key, values] of Object.entries(availableTasks)) {
+          const tableBody = document.getElementById(`${key}-table`).querySelector("tbody");
+          tableBody.innerHTML = "";
+          values.forEach(([name, task], index) => {
+            const row = document.createElement("tr");
+            const nameCell = document.createElement("td");
+            const taskCell = document.createElement("td");
+            nameCell.textContent = name;
+            taskCell.textContent = task || "-";
+            nameCell.addEventListener("click", () => {
+              selectedCell = nameCell;
+              selectedCell.dataset.rowIndex = (index + 12).toString();
+              selectedCell.dataset.department = key;
+              selectedCell.dataset.colType = "name";
+              document.getElementById("nameModal").style.display = "block";
+            });
+            taskCell.addEventListener("click", () => {
+              selectedCell = taskCell;
+              selectedCell.dataset.rowIndex = (index + 12).toString();
+              selectedCell.dataset.department = key;
+              selectedCell.dataset.colType = "task";
+              populateTaskModal(key);
+              document.getElementById("taskModal").style.display = "block";
+            });
+            row.appendChild(nameCell);
+            row.appendChild(taskCell);
+            tableBody.appendChild(row);
+          });
+        }
+
+        const nameList = document.getElementById("nameList");
+        nameList.innerHTML = "";
+        availableNames.forEach(name => {
+          const li = document.createElement("li");
+          li.textContent = name;
+          li.addEventListener("click", () => {
+            if (selectedCell) {
+              selectedCell.textContent = name;
+              updateSheetValue("name", name);
+              closeModal("nameModal");
+            }
+          });
+          nameList.appendChild(li);
+        });
+
+        document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+      } catch (err) {
+        console.error("Error loading data:", err);
+        document.getElementById("datetime").textContent = "Failed to load data";
+      }
+    }
+
+    function populateTaskModal(department) {
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+      const tasks = availableTaskNames[department] || [];
+      tasks.forEach(task => {
+        const li = document.createElement("li");
+        li.textContent = task;
+        li.addEventListener("click", () => {
+          if (selectedCell) {
+            selectedCell.textContent = task;
+            updateSheetValue("task", task);
+            closeModal("taskModal");
+          }
+        });
+        taskList.appendChild(li);
+      });
+    }
+
+    function updateSheetValue(colType, value) {
+      const rowIndex = selectedCell.dataset.rowIndex;
+      const department = selectedCell.dataset.department;
+
+      if (!rowIndex || isNaN(Number(rowIndex))) {
+        console.error("Invalid rowIndex:", rowIndex);
+        return;
+      }
+
+      fetch(apiUrlUpdateCell, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ department, rowIndex, colType, value })
+      })
+      .then(res => res.json())
+      .then(data => console.log("Updated:", data))
+      .catch(err => console.error("POST error:", err));
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = "none";
+    }
+
+    document.getElementById("nameClose").onclick = () => closeModal("nameModal");
+    document.getElementById("taskClose").onclick = () => closeModal("taskModal");
+
+    document.getElementById("nameSearch").addEventListener("input", function () {
+      const filter = this.value.toLowerCase();
+      document.querySelectorAll("#nameList li").forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+      });
+    });
+
+    document.getElementById("taskSearch").addEventListener("input", function () {
+      const filter = this.value.toLowerCase();
+      document.querySelectorAll("#taskList li").forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+      });
+    });
+
+    fetchAndDisplay();
+
+    fetch(apiUrlCounts)
+      .then(res => res.json())
+      .then(data => {
+        const totalEl = document.createElement("div");
+        totalEl.textContent = `Total Employees: ${data.total}`;
+        totalEl.style.textAlign = "center";
+        totalEl.style.fontSize = "22px";
+        totalEl.style.marginBottom = "10px";
+        document.querySelector("header").insertAdjacentElement("afterend", totalEl);
+
+        const departments = ["distribution", "goodsin", "pallets"];
+        departments.forEach(dep => {
+          const depEl = document.getElementById(`${dep}-table`).closest(".department");
+          const countEl = document.createElement("div");
+          countEl.textContent = `${data[dep]} employees`;
+          countEl.style.fontWeight = "bold";
+          countEl.style.marginBottom = "8px";
+          depEl.insertBefore(countEl, depEl.querySelector("h2"));
+        });
+      })
+      .catch(console.error);
+
+    setInterval(fetchAndDisplay, 60000);
+  </script>
+</body>
+</html>
