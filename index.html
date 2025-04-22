@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DAILY TASKS BOARD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Task Board</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,12 +14,12 @@
       transform: scale(0.75);
       transform-origin: top left;
       width: 133.33%;
+
     }
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 10px;
     }
     header img {
       height: 40px;
@@ -29,41 +29,48 @@
       margin: 0;
       font-size: 32px;
     }
-    #datetime {
+    #datetime, #total-count {
       text-align: center;
       font-size: 20px;
       margin-top: 10px;
+      font-weight: bold;
     }
     .departments {
       display: flex;
       justify-content: space-around;
       gap: 20px;
       flex-wrap: wrap;
-      max-width: 100%;
+      margin-top: 20px;
     }
     .department {
       background: #F37021;
-      color: white;
       padding: 20px;
       border-radius: 10px;
       flex: 1 1 30%;
-      min-width: 280px;
+      min-width: 300px;
       max-width: 400px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-    h2 {
       color: white;
+    }
+    .department h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .leader-line, .emp-count {
+      font-size: 16px;
+      font-weight: bold;
+      margin-top: 5px;
+      margin-bottom: 5px;
     }
     table {
       width: 100%;
-      border-collapse: collapse;
-      background-color: white;
+      background: white;
       color: black;
+      margin-top: 10px;
+      border-collapse: collapse;
     }
     th, td {
       padding: 8px;
       text-align: left;
-      border-bottom: 1px solid #ddd;
     }
     th {
       background-color: #333;
@@ -71,52 +78,44 @@
     }
     td {
       background-color: #F37021;
-      color: black;
       font-weight: bold;
       cursor: pointer;
     }
     tr:hover {
       background-color: #f5f5f5;
     }
+    button {
+      background: white;
+      color: #F37021;
+      font-weight: bold;
+      padding: 6px 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
     .modal {
       display: none;
       position: fixed;
-      z-index: 1;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
       background-color: rgba(0,0,0,0.4);
-      padding-top: 60px;
       overflow: auto;
     }
     .modal-content {
-      background-color: #ccc;
-      color: black;
-      margin: 5% auto;
+      background: #ccc;
+      margin: 10% auto;
       padding: 20px;
-      border: 1px solid #888;
       width: 50%;
+      border-radius: 5px;
+      color: black;
     }
-    .modal-content input[type="text"] {
+    .modal-content input {
       width: 100%;
       padding: 8px;
-      margin-bottom: 10px;
       font-size: 16px;
-      border: 1px solid #888;
-      border-radius: 4px;
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-    }
-    .close:hover,
-    .close:focus {
-      color: black;
-      text-decoration: none;
-      cursor: pointer;
+      margin-bottom: 10px;
     }
     .options-list {
       list-style-type: none;
@@ -128,31 +127,58 @@
       color: black;
     }
     .options-list li:hover {
-      background-color: #ddd;
+      background: #eee;
+    }
+    .close {
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover {
+      color: red;
     }
   </style>
 </head>
 <body>
   <header>
     <img src="jli-logo.png" alt="JLI Logo" />
-    <h1>DAILY TASKS BOARD</h1>
-    <div style="width: 40px;"></div>
+    <h1>Daily Task Board</h1>
+    <div style="width:40px"></div>
   </header>
 
-  <div id="datetime">Loading current date and time...</div>
+  <div id="datetime">Loading time...</div>
+  <div id="total-count">Loading employee count...</div>
 
   <div class="departments">
     <div class="department">
       <h2>Distribution</h2>
-      <table id="distribution-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
+      <div class="leader-line" id="distribution-leader"></div>
+      <div class="emp-count" id="distribution-count"></div>
+      <table id="distribution-table">
+        <thead><tr><th>Employee</th><th>Task</th><th>-</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
+
     <div class="department">
       <h2>Goods In</h2>
-      <table id="goodsin-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
+      <div class="leader-line" id="goodsin-leader"></div>
+      <div class="emp-count" id="goodsin-count"></div>
+      <table id="goodsin-table">
+        <thead><tr><th>Employee</th><th>Task</th><th>-</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
+
     <div class="department">
       <h2>Pallets</h2>
-      <table id="pallets-table"><thead><tr><th>Employee</th><th>Task</th></tr></thead><tbody></tbody></table>
+      <div class="leader-line" id="pallets-leader"></div>
+      <div class="emp-count" id="pallets-count"></div>
+      <table id="pallets-table">
+        <thead><tr><th>Employee</th><th>Task</th><th>-</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 
@@ -160,7 +186,7 @@
   <div id="nameModal" class="modal">
     <div class="modal-content">
       <span class="close" id="nameClose">&times;</span>
-      <h2>Select an Employee</h2>
+      <h2>Select Employee</h2>
       <input type="text" id="nameSearch" placeholder="Search names...">
       <ul class="options-list" id="nameList"></ul>
     </div>
@@ -169,179 +195,186 @@
   <div id="taskModal" class="modal">
     <div class="modal-content">
       <span class="close" id="taskClose">&times;</span>
-      <h2>Select a Task</h2>
+      <h2>Select Task</h2>
       <input type="text" id="taskSearch" placeholder="Search tasks...">
       <ul class="options-list" id="taskList"></ul>
     </div>
   </div>
 
   <script>
-    const proxyBase = "https://developing-cream-freeze.glitch.me";
-    const apiUrlMainData = `${proxyBase}/?action=getMain`;
-    const apiUrlModalData = `${proxyBase}/?action=getModal`;
-    const apiUrlUpdateCell = proxyBase;
-    const apiUrlCounts = `${proxyBase}/?action=getCounts`;
+  const proxyBase = "https://developing-cream-freeze.glitch.me";
+  const apiUrlMainData = `${proxyBase}/?action=getMain`;
+  const apiUrlModalData = `${proxyBase}/?action=getModal`;
+  const apiUrlCountData = `${proxyBase}/?action=getCounts`;
+  const apiUrlUpdateCell = proxyBase;
 
-    let selectedCell = null;
-    let availableTaskNames = { distribution: [], goodsin: [], pallets: [] };
-    let availableNames = [];
+  let selectedCell = null;
+  let addRowDepartment = null;
+  let newEmployeeName = null;
+  let availableNames = [];
+  let availableTaskNames = {};
 
-    async function fetchAndDisplay() {
-      try {
-        const resMainData = await fetch(apiUrlMainData);
-        const dataMain = await resMainData.json();
+  async function fetchAndDisplay() {
+    const [mainRes, modalRes, countRes] = await Promise.all([
+      fetch(apiUrlMainData), fetch(apiUrlModalData), fetch(apiUrlCountData)
+    ]);
 
-        const resModalData = await fetch(apiUrlModalData);
-        const dataModal = await resModalData.json();
+    const main = await mainRes.json();
+    const modal = await modalRes.json();
+    const counts = await countRes.json();
 
-        const availableTasks = {
-          distribution: dataMain.distribution || [],
-          goodsin: dataMain.goodsin || [],
-          pallets: dataMain.pallets || []
-        };
+    availableNames = modal.employees || [];
+    availableTaskNames = {
+      distribution: modal.distributionTasks || [],
+      goodsin: modal.goodsInTasks || [],
+      pallets: modal.palletsTasks || []
+    };
 
-        availableNames = dataModal.employees || [];
-        availableTaskNames = {
-          distribution: dataModal.distributionTasks || [],
-          goodsin: dataModal.goodsInTasks || [],
-          pallets: dataModal.palletsTasks || []
-        };
+    document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+    document.getElementById("total-count").textContent = `Total Employees: ${counts.total}`;
 
-        for (const [key, values] of Object.entries(availableTasks)) {
-          const tableBody = document.getElementById(`${key}-table`).querySelector("tbody");
-          tableBody.innerHTML = "";
-          values.forEach(([name, task], index) => {
-            const row = document.createElement("tr");
-            const nameCell = document.createElement("td");
-            const taskCell = document.createElement("td");
-            nameCell.textContent = name;
-            taskCell.textContent = task || "-";
-            nameCell.addEventListener("click", () => {
-              selectedCell = nameCell;
-              selectedCell.dataset.rowIndex = (index + 12).toString();
-              selectedCell.dataset.department = key;
-              selectedCell.dataset.colType = "name";
-              document.getElementById("nameModal").style.display = "block";
-            });
-            taskCell.addEventListener("click", () => {
-              selectedCell = taskCell;
-              selectedCell.dataset.rowIndex = (index + 12).toString();
-              selectedCell.dataset.department = key;
-              selectedCell.dataset.colType = "task";
-              populateTaskModal(key);
-              document.getElementById("taskModal").style.display = "block";
-            });
-            row.appendChild(nameCell);
-            row.appendChild(taskCell);
-            tableBody.appendChild(row);
-          });
-        }
+    ["distribution", "goodsin", "pallets"].forEach(dept => {
+      const table = document.getElementById(`${dept}-table`);
+      const tbody = table.querySelector("tbody");
+      tbody.innerHTML = "";
+      document.getElementById(`${dept}-leader`).textContent = `Leader: ${main.leaders?.[dept] || "N/A"}`;
+      document.getElementById(`${dept}-count`).textContent = `Employees: ${counts[dept] || 0}`;
 
-        const nameList = document.getElementById("nameList");
-        nameList.innerHTML = "";
-        availableNames.forEach(name => {
-          const li = document.createElement("li");
-          li.textContent = name;
-          li.addEventListener("click", () => {
-            if (selectedCell) {
-              selectedCell.textContent = name;
-              updateSheetValue("name", name);
-              closeModal("nameModal");
-            }
-          });
-          nameList.appendChild(li);
-        });
+      (main[dept] || []).forEach(([name, task], i) => {
+        if (!name && !task) return;
+        const rowIndex = i + 12;
+        const row = document.createElement("tr");
 
-        document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
-      } catch (err) {
-        console.error("Error loading data:", err);
-        document.getElementById("datetime").textContent = "Failed to load data";
-      }
-    }
+        const nameCell = document.createElement("td");
+        nameCell.textContent = name;
+        nameCell.onclick = () => openModal("name", dept, rowIndex, nameCell);
 
-    function populateTaskModal(department) {
-      const taskList = document.getElementById("taskList");
-      taskList.innerHTML = "";
-      const tasks = availableTaskNames[department] || [];
-      tasks.forEach(task => {
-        const li = document.createElement("li");
-        li.textContent = task;
-        li.addEventListener("click", () => {
-          if (selectedCell) {
-            selectedCell.textContent = task;
-            updateSheetValue("task", task);
-            closeModal("taskModal");
-          }
-        });
-        taskList.appendChild(li);
+        const taskCell = document.createElement("td");
+        taskCell.textContent = task || "-";
+        taskCell.onclick = () => openModal("task", dept, rowIndex, taskCell);
+
+        const delCell = document.createElement("td");
+        delCell.textContent = "–";
+        delCell.style.color = "red";
+        delCell.style.textAlign = "center";
+        delCell.style.cursor = "pointer";
+        delCell.onclick = () => deleteRow(dept, rowIndex);
+
+        row.append(nameCell, taskCell, delCell);
+        tbody.appendChild(row);
       });
-    }
 
-    function updateSheetValue(colType, value) {
-      const rowIndex = selectedCell.dataset.rowIndex;
-      const department = selectedCell.dataset.department;
-
-      if (!rowIndex || isNaN(Number(rowIndex))) {
-        console.error("Invalid rowIndex:", rowIndex);
-        return;
+      let addBtn = document.getElementById(`${dept}-add`);
+      if (!addBtn) {
+        addBtn = document.createElement("button");
+        addBtn.id = `${dept}-add`;
+        addBtn.textContent = "+ Add Row";
+        addBtn.onclick = () => openAddNameModal(dept);
+        table.closest(".department").appendChild(addBtn);
       }
+    });
 
+    populateList("nameList", availableNames, name => {
+      newEmployeeName = name;
+      closeModal("nameModal");
+      openAddTaskModal();
+    });
+
+    document.getElementById("nameSearch").oninput = () =>
+      filterList("nameSearch", "nameList");
+
+    document.getElementById("taskSearch").oninput = () =>
+      filterList("taskSearch", "taskList");
+  }
+
+  function openModal(type, dept, rowIndex, cell) {
+    selectedCell = cell;
+    selectedCell.dataset.department = dept;
+    selectedCell.dataset.rowIndex = rowIndex;
+    selectedCell.dataset.colType = type;
+
+    if (type === "name") {
+      document.getElementById("nameModal").style.display = "block";
+    } else {
+      populateList("taskList", availableTaskNames[dept], task => {
+        selectedCell.textContent = task;
+        updateSheetValue("task", task);
+        closeModal("taskModal");
+      });
+      document.getElementById("taskModal").style.display = "block";
+    }
+  }
+
+  function openAddNameModal(dept) {
+    addRowDepartment = dept;
+    newEmployeeName = null;
+    document.getElementById("nameModal").style.display = "block";
+  }
+
+  function openAddTaskModal() {
+    populateList("taskList", availableTaskNames[addRowDepartment], task => {
+      if (!addRowDepartment || !newEmployeeName || !task) return;
       fetch(apiUrlUpdateCell, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ department, rowIndex, colType, value })
-      })
-      .then(res => res.json())
-      .then(data => console.log("Updated:", data))
-      .catch(err => console.error("POST error:", err));
-    }
-
-    function closeModal(modalId) {
-      document.getElementById(modalId).style.display = "none";
-    }
-
-    document.getElementById("nameClose").onclick = () => closeModal("nameModal");
-    document.getElementById("taskClose").onclick = () => closeModal("taskModal");
-
-    document.getElementById("nameSearch").addEventListener("input", function () {
-      const filter = this.value.toLowerCase();
-      document.querySelectorAll("#nameList li").forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
+        body: JSON.stringify({
+          action: "addRow",
+          department: addRowDepartment,
+          name: newEmployeeName,
+          task: task
+        })
+      }).then(() => {
+        closeModal("taskModal");
+        fetchAndDisplay();
       });
     });
+    document.getElementById("taskModal").style.display = "block";
+  }
 
-    document.getElementById("taskSearch").addEventListener("input", function () {
-      const filter = this.value.toLowerCase();
-      document.querySelectorAll("#taskList li").forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(filter) ? "" : "none";
-      });
+  function updateSheetValue(colType, value) {
+    const { department, rowIndex } = selectedCell.dataset;
+    fetch(apiUrlUpdateCell, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ department, rowIndex, colType, value })
+    }).then(() => fetchAndDisplay());
+  }
+
+  function deleteRow(department, rowIndex) {
+    fetch(apiUrlUpdateCell, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deleteRow", department, rowIndex })
+    }).then(() => fetchAndDisplay());
+  }
+
+  function populateList(listId, values, onClick) {
+    const list = document.getElementById(listId);
+    list.innerHTML = "";
+    values.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      li.onclick = () => onClick(item);
+      list.appendChild(li);
     });
+  }
 
-    fetchAndDisplay();
+  function filterList(inputId, listId) {
+    const filter = document.getElementById(inputId).value.toLowerCase();
+    document.querySelectorAll(`#${listId} li`).forEach(li => {
+      li.style.display = li.textContent.toLowerCase().includes(filter) ? "" : "none";
+    });
+  }
 
-    fetch(apiUrlCounts)
-      .then(res => res.json())
-      .then(data => {
-        const totalEl = document.createElement("div");
-        totalEl.textContent = `Total Employees: ${data.total}`;
-        totalEl.style.textAlign = "center";
-        totalEl.style.fontSize = "22px";
-        totalEl.style.marginBottom = "10px";
-        document.querySelector("header").insertAdjacentElement("afterend", totalEl);
+  function closeModal(id) {
+    document.getElementById(id).style.display = "none";
+  }
 
-        const departments = ["distribution", "goodsin", "pallets"];
-        departments.forEach(dep => {
-          const depEl = document.getElementById(`${dep}-table`).closest(".department");
-          const countEl = document.createElement("div");
-          countEl.textContent = `${data[dep]} employees`;
-          countEl.style.fontWeight = "bold";
-          countEl.style.marginBottom = "8px";
-          depEl.insertBefore(countEl, depEl.querySelector("h2"));
-        });
-      })
-      .catch(console.error);
+  document.getElementById("nameClose").onclick = () => closeModal("nameModal");
+  document.getElementById("taskClose").onclick = () => closeModal("taskModal");
 
-    setInterval(fetchAndDisplay, 60000);
+  fetchAndDisplay();
+  setInterval(fetchAndDisplay, 60000);
   </script>
 </body>
 </html>
