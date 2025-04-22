@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Daily Task Board</title>
+  <title>Daily Department Schedule</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,7 +14,6 @@
       transform: scale(0.75);
       transform-origin: top left;
       width: 133.33%;
-
     }
     header {
       display: flex;
@@ -143,7 +142,7 @@
 <body>
   <header>
     <img src="jli-logo.png" alt="JLI Logo" />
-    <h1>Daily Task Board</h1>
+    <h1>Daily Department Schedule</h1>
     <div style="width:40px"></div>
   </header>
 
@@ -155,7 +154,7 @@
       <h2>Dispatch</h2>
       <div class="leader-line" id="dispatch-leader"></div>
       <div class="emp-count" id="dispatch-count"></div>
-      <table id="distribution-table">
+      <table id="dispatch-table">
         <thead><tr><th>Employee</th><th>Task</th><th>-</th></tr></thead>
         <tbody></tbody>
       </table>
@@ -175,7 +174,7 @@
       <h2>Sorters</h2>
       <div class="leader-line" id="sorters-leader"></div>
       <div class="emp-count" id="sorters-count"></div>
-      <table id="pallets-table">
+      <table id="sorters-table">
         <thead><tr><th>Employee</th><th>Task</th><th>-</th></tr></thead>
         <tbody></tbody>
       </table>
@@ -202,186 +201,179 @@
   </div>
 
   <script>
-  const proxyBase = "https://developing-cream-freeze.glitch.me";
-const apiUrlMainData = `${proxyBase}/?action=getMain`;
-const apiUrlModalData = `${proxyBase}/?action=getModal`;
-const apiUrlCountData = `${proxyBase}/?action=getCounts`;
-const apiUrlUpdateCell = proxyBase;
+    const proxyBase = "https://developing-cream-freeze.glitch.me";
+    const apiUrlMainData = `${proxyBase}/?action=getMain`;
+    const apiUrlModalData = `${proxyBase}/?action=getModal`;
+    const apiUrlCountData = `${proxyBase}/?action=getCounts`;
+    const apiUrlUpdateCell = proxyBase;
 
-let selectedCell = null;
-let addRowDepartment = null;
-let newEmployeeName = null;
-let availableNames = [];
-let availableTaskNames = {};
+    let selectedCell = null;
+    let addRowDepartment = null;
+    let newEmployeeName = null;
+    let availableNames = [];
+    let availableTaskNames = {};
 
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    closeModal("nameModal");
-    closeModal("taskModal");
-  }
-});
+    async function fetchAndDisplay() {
+      const [mainRes, modalRes, countRes] = await Promise.all([
+        fetch(apiUrlMainData), fetch(apiUrlModalData), fetch(apiUrlCountData)
+      ]);
 
-function setLoading(state) {
-  const datetime = document.getElementById("datetime");
-  datetime.textContent = state ? "Loading..." : `Last updated: ${new Date().toLocaleString()}`;
-}
+      const main = await mainRes.json();
+      const modal = await modalRes.json();
+      const counts = await countRes.json();
 
-async function fetchAndDisplay() {
-  setLoading(true);
-  const [mainRes, modalRes, countRes] = await Promise.all([
-    fetch(apiUrlMainData), fetch(apiUrlModalData), fetch(apiUrlCountData)
-  ]);
+      availableNames = modal.employees || [];
+      availableTaskNames = {
+        dispatch: modal.dispatchTasks || [],
+        goodsin: modal.goodsInTasks || [],
+        sorters: modal.sortersTasks || []
+      };
 
-  const main = await mainRes.json();
-  const modal = await modalRes.json();
-  const counts = await countRes.json();
+      document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
+      document.getElementById("total-count").textContent = `Total Employees: ${counts.total}`;
 
-  availableNames = modal.employees || [];
-  availableTaskNames = {
-    dispatch: modal.dispatchTasks || [],
-    goodsin: modal.goodsInTasks || [],
-    sorters: modal.sortersTasks || []
-  };
+      ["dispatch", "goodsin", "sorters"].forEach(dept => {
+        const table = document.getElementById(`${dept}-table`);
+        const tbody = table.querySelector("tbody");
+        tbody.innerHTML = "";
+        document.getElementById(`${dept}-leader`).textContent = `Leader: ${main.leaders?.[dept] || "N/A"}`;
+        document.getElementById(`${dept}-count`).textContent = `Employees: ${counts[dept] || 0}`;
 
-  document.getElementById("total-count").textContent = `Total Employees: ${counts.total}`;
+        (main[dept] || []).forEach(([name, task], i) => {
+          if (!name && !task) return;
+          const rowIndex = i + 12;
+          const row = document.createElement("tr");
 
-  ["dispatch", "goodsin", "sorters"].forEach(renderDepartmentTable.bind(null, main, counts));
+          const nameCell = document.createElement("td");
+          nameCell.textContent = name;
+          nameCell.onclick = () => openModal("name", dept, rowIndex, nameCell);
 
-  populateList("nameList", availableNames, name => {
-    newEmployeeName = name;
-    closeModal("nameModal");
-    openAddTaskModal();
-  });
+          const taskCell = document.createElement("td");
+          taskCell.textContent = task || "-";
+          taskCell.onclick = () => openModal("task", dept, rowIndex, taskCell);
 
-  document.getElementById("nameSearch").oninput = () =>
-    filterList("nameSearch", "nameList");
+          const delCell = document.createElement("td");
+          delCell.textContent = "–";
+          delCell.style.color = "red";
+          delCell.style.textAlign = "center";
+          delCell.style.cursor = "pointer";
+          delCell.onclick = () => deleteRow(dept, rowIndex);
 
-  document.getElementById("taskSearch").oninput = () =>
-    filterList("taskSearch", "taskList");
+          row.append(nameCell, taskCell, delCell);
+          tbody.appendChild(row);
+        });
 
-  setLoading(false);
-}
+        let addBtn = document.getElementById(`${dept}-add`);
+        if (!addBtn) {
+          addBtn = document.createElement("button");
+          addBtn.id = `${dept}-add`;
+          addBtn.textContent = "+ Add Row";
+          addBtn.onclick = () => openAddNameModal(dept);
+          table.closest(".department").appendChild(addBtn);
+        }
+      });
 
-function renderDepartmentTable(main, counts, dept) {
-  const table = document.getElementById(`${dept}-table`);
-  if (!table) {
-    console.warn(`Table element for "${dept}-table" not found.`);
-    return;
-  }
+      populateList("nameList", availableNames, name => {
+        newEmployeeName = name;
+        closeModal("nameModal");
+        openAddTaskModal();
+      });
 
-  const tbody = table.querySelector("tbody");
-  tbody.innerHTML = "";
+      document.getElementById("nameSearch").oninput = () =>
+        filterList("nameSearch", "nameList");
 
-  document.getElementById(`${dept}-leader`).textContent = `Leader: ${main.leaders?.[dept] || "N/A"}`;
-  document.getElementById(`${dept}-count`).textContent = `Employees: ${counts[dept] || 0}`;
+      document.getElementById("taskSearch").oninput = () =>
+        filterList("taskSearch", "taskList");
+    }
 
-  (main[dept] || []).forEach(([name, task], i) => {
-    if (!name && !task) return;
-    const rowIndex = i + 12;
-    const row = document.createElement("tr");
+    function openModal(type, dept, rowIndex, cell) {
+      selectedCell = cell;
+      selectedCell.dataset.department = dept;
+      selectedCell.dataset.rowIndex = rowIndex;
+      selectedCell.dataset.colType = type;
 
-    row.innerHTML = `
-      <td data-type="name" data-department="${dept}" data-rowindex="${rowIndex}">${name}</td>
-      <td data-type="task" data-department="${dept}" data-rowindex="${rowIndex}">${task || "-"}</td>
-      <td style="color:red;text-align:center;cursor:pointer">–</td>
-    `;
+      if (type === "name") {
+        document.getElementById("nameModal").style.display = "block";
+      } else {
+        populateList("taskList", availableTaskNames[dept], task => {
+          selectedCell.textContent = task;
+          updateSheetValue("task", task);
+          closeModal("taskModal");
+        });
+        document.getElementById("taskModal").style.display = "block";
+      }
+    }
 
-    const [nameCell, taskCell, delCell] = row.children;
-    nameCell.onclick = () => openModal("name", dept, rowIndex, nameCell);
-    taskCell.onclick = () => openModal("task", dept, rowIndex, taskCell);
-    delCell.onclick = () => deleteRow(dept, rowIndex);
+    function openAddNameModal(dept) {
+      addRowDepartment = dept;
+      newEmployeeName = null;
+      document.getElementById("nameModal").style.display = "block";
+    }
 
-    tbody.appendChild(row);
-  });
+    function openAddTaskModal() {
+      populateList("taskList", availableTaskNames[addRowDepartment], task => {
+        if (!addRowDepartment || !newEmployeeName || !task) return;
+        fetch(apiUrlUpdateCell, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "addRow",
+            department: addRowDepartment,
+            name: newEmployeeName,
+            task: task
+          })
+        }).then(() => {
+          closeModal("taskModal");
+          fetchAndDisplay();
+        });
+      });
+      document.getElementById("taskModal").style.display = "block";
+    }
 
-  if (!document.getElementById(`${dept}-add`)) {
-    const addBtn = document.createElement("button");
-    addBtn.id = `${dept}-add`;
-    addBtn.textContent = "+ Add Row";
-    addBtn.onclick = () => openAddNameModal(dept);
-    table.closest(".department").appendChild(addBtn);
-  }
-}
+    function updateSheetValue(colType, value) {
+      const { department, rowIndex } = selectedCell.dataset;
+      fetch(apiUrlUpdateCell, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ department, rowIndex, colType, value })
+      }).then(() => fetchAndDisplay());
+    }
 
-function openModal(type, dept, rowIndex, cell) {
-  selectedCell = cell;
-  if (type === "name") {
-    document.getElementById("nameModal").style.display = "block";
-  } else {
-    populateList("taskList", availableTaskNames[dept], task => {
-      selectedCell.textContent = task;
-      updateSheetValue("task", task);
-      closeModal("taskModal");
-    });
-    document.getElementById("taskModal").style.display = "block";
-  }
-}
+    function deleteRow(department, rowIndex) {
+      fetch(apiUrlUpdateCell, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "deleteRow", department, rowIndex })
+      }).then(() => fetchAndDisplay());
+    }
 
-function openAddNameModal(dept) {
-  addRowDepartment = dept;
-  newEmployeeName = null;
-  document.getElementById("nameModal").style.display = "block";
-}
+    function populateList(listId, values, onClick) {
+      const list = document.getElementById(listId);
+      list.innerHTML = "";
+      values.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        li.onclick = () => onClick(item);
+        list.appendChild(li);
+      });
+    }
 
-function openAddTaskModal() {
-  populateList("taskList", availableTaskNames[addRowDepartment], task => {
-    if (!addRowDepartment || !newEmployeeName || !task) return;
-    fetch(apiUrlUpdateCell, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "addRow", department: addRowDepartment, name: newEmployeeName, task })
-    }).then(() => {
-      closeModal("taskModal");
-      fetchAndDisplay();
-    });
-  });
-  document.getElementById("taskModal").style.display = "block";
-}
+    function filterList(inputId, listId) {
+      const filter = document.getElementById(inputId).value.toLowerCase();
+      document.querySelectorAll(`#${listId} li`).forEach(li => {
+        li.style.display = li.textContent.toLowerCase().includes(filter) ? "" : "none";
+      });
+    }
 
-function updateSheetValue(colType, value) {
-  const { department, rowindex } = selectedCell.dataset;
-  fetch(apiUrlUpdateCell, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ department, rowIndex: rowindex, colType, value })
-  }).then(() => fetchAndDisplay());
-}
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
 
-function deleteRow(department, rowIndex) {
-  fetch(apiUrlUpdateCell, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "deleteRow", department, rowIndex })
-  }).then(() => fetchAndDisplay());
-}
+    document.getElementById("nameClose").onclick = () => closeModal("nameModal");
+    document.getElementById("taskClose").onclick = () => closeModal("taskModal");
 
-function populateList(listId, values, onClick) {
-  const list = document.getElementById(listId);
-  list.innerHTML = "";
-  values.forEach(item => {
-    const li = document.createElement("li");
-    li.textContent = item;
-    li.onclick = () => onClick(item);
-    list.appendChild(li);
-  });
-}
-
-function filterList(inputId, listId) {
-  const filter = document.getElementById(inputId).value.toLowerCase();
-  document.querySelectorAll(`#${listId} li`).forEach(li => {
-    li.style.display = li.textContent.toLowerCase().includes(filter) ? "" : "none";
-  });
-}
-
-function closeModal(id) {
-  document.getElementById(id).style.display = "none";
-}
-
-document.getElementById("nameClose").onclick = () => closeModal("nameModal");
-document.getElementById("taskClose").onclick = () => closeModal("taskModal");
-
-fetchAndDisplay();
-setInterval(fetchAndDisplay, 60000);
+    fetchAndDisplay();
+    setInterval(fetchAndDisplay, 60000);
   </script>
 </body>
 </html>
