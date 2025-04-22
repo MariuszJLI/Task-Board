@@ -152,7 +152,7 @@
 
   <div class="departments">
     <div class="department">
-      <h2>Distribution</h2>
+      <h2>Dispatch</h2>
       <div class="leader-line" id="distribution-leader"></div>
       <div class="emp-count" id="distribution-count"></div>
       <table id="distribution-table">
@@ -172,7 +172,7 @@
     </div>
 
     <div class="department">
-      <h2>Pallets</h2>
+      <h2>Sorters</h2>
       <div class="leader-line" id="pallets-leader"></div>
       <div class="emp-count" id="pallets-count"></div>
       <table id="pallets-table">
@@ -225,15 +225,15 @@
 
     availableNames = modal.employees || [];
     availableTaskNames = {
-      distribution: modal.distributionTasks || [],
+      dispatch: modal.dispatchTasks || [],
       goodsin: modal.goodsInTasks || [],
-      pallets: modal.palletsTasks || []
+      sorters: modal.sortersTasks || []
     };
 
     document.getElementById("datetime").textContent = "Last updated: " + new Date().toLocaleString();
     document.getElementById("total-count").textContent = `Total Employees: ${counts.total}`;
 
-    ["distribution", "goodsin", "pallets"].forEach(dept => {
+    ["dispatch", "goodsin", "sorters"].forEach(dept => {
       const table = document.getElementById(`${dept}-table`);
       const tbody = table.querySelector("tbody");
       tbody.innerHTML = "";
